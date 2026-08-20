@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DispatchOS</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0f1117;--surface:#1a1d27;--s2:#222636;--border:#2e3248;
+  --accent:#3d7fff;--a2:#00d4aa;--red:#ff4d6d;--yellow:#ffd166;
+  --green:#06d6a0;--gray:#8892a4;--text:#e8eaf0;--t2:#b0b8cc;
+}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;height:100vh;overflow:hidden}
+.hidden{display:none!important}
+/* SETUP */
+#setup{display:flex;align-items:center;justify-content:center;height:100vh;background:var(--bg)}
+.setup-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;width:420px}
+.setup-card h1{font-size:22px;margin-bottom:4px;color:var(--a2)}
+.setup-card p{color:var(--gray);font-size:13px;margin-bottom:28px}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:12px;color:var(--t2);margin-bottom:6px;font-weight:500;letter-spacing:.04em}
+.form-input{width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;outline:none;transition:.15s}
+.form-input:focus{border-color:var(--accent)}
+/* APP LAYOUT */
+#app{display:flex;height:100vh;overflow:hidden}
+/* SIDEBAR */
+.sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.logo{padding:18px 16px 14px;border-bottom:1px solid var(--border)}
+.logo-name{font-size:14px;font-weight:700;color:var(--a2);letter-spacing:.06em}
+.logo-sub{font-size:11px;color:var(--gray);margin-top:2px}
+.nav{padding:10px 8px;flex:1}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:7px;cursor:pointer;font-size:13px;color:var(--t2);transition:.15s;margin-bottom:2px;border:none;background:transparent;width:100%;text-align:left;font-family:inherit}
+.nav-item:hover{background:var(--s2);color:var(--text)}
+.nav-item.active{background:rgba(61,127,255,.15);color:var(--accent)}
+.nav-icon{font-size:15px;width:20px;text-align:center}
+.sidebar-bottom{padding:10px 8px 16px}
+.user-chip{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.user-name{font-size:13px;font-weight:600}
+.user-phone{font-size:11px;color:var(--gray);margin-top:2px}
+.stats-mini{display:flex;gap:6px;margin-top:8px}
+.stat-pill{flex:1;text-align:center;padding:5px 4px;background:var(--bg);border-radius:6px;border:1px solid var(--border)}
+.stat-pill .n{font-size:16px;font-weight:700}
+.stat-pill .l{font-size:9px;color:var(--gray)}
+/* MAIN */
+.main-content{flex:1;display:flex;flex-direction:column;overflow:hidden}
+/* SCREENS */
+.screen-panel{display:none;flex:1;flex-direction:column;overflow:hidden}
+.screen-panel.active{display:flex}
+/* TOPBAR */
+.topbar{padding:14px 22px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px}
+.topbar-title h2{font-size:15px;font-weight:600}
+.topbar-title p{font-size:12px;color:var(--gray);margin-top:2px}
+/* BTN */
+.btn{padding:8px 16px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:.15s}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:#2d6fee}
+.btn-success{background:var(--a2);color:#0f1117}.btn-success:hover{background:#00b894}
+.btn-outline{background:transparent;color:var(--t2);border:1px solid var(--border)}.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-danger{background:rgba(255,77,109,.15);color:var(--red);border:1px solid var(--red)}.btn-danger:hover{background:var(--red);color:#fff}
+/* BADGE */
+.badge{padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-blue{background:rgba(61,127,255,.15);color:var(--accent)}
+.badge-green{background:rgba(6,214,160,.15);color:var(--green)}
+.badge-red{background:rgba(255,77,109,.12);color:var(--red)}
+.badge-yellow{background:rgba(255,209,102,.15);color:var(--yellow)}
+.badge-gray{background:rgba(136,146,164,.15);color:var(--gray)}
+
+/* ── UPLOAD SCREEN ── */
+.upload-body{flex:1;overflow-y:auto;padding:30px}
+.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:50px 24px;text-align:center;cursor:pointer;transition:.2s;background:var(--surface);max-width:580px;margin:0 auto 20px}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--a2);background:rgba(0,212,170,.04)}
+.upload-zone.loaded{border-color:var(--a2);background:rgba(0,212,170,.04)}
+.upload-icon{font-size:44px;margin-bottom:12px}
+.upload-title{font-size:15px;font-weight:600;margin-bottom:6px}
+.upload-sub{font-size:13px;color:var(--gray)}
+.result-card{max-width:580px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.result-header{padding:14px 18px;background:var(--s2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.result-header h3{font-size:13px;font-weight:600}
+.result-row{display:flex;justify-content:space-between;padding:10px 18px;font-size:13px;border-bottom:1px solid rgba(46,50,72,.5);align-items:center}
+.result-row:last-child{border:none}
+.result-row .lbl{color:var(--gray)}
+.result-row .val{font-weight:500}
+.result-footer{padding:14px 18px}
+.processing-overlay{position:fixed;inset:0;background:rgba(15,17,23,.9);display:flex;align-items:center;justify-content:center;z-index:100;flex-direction:column;gap:16px}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--a2);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.processing-text{font-size:14px;color:var(--t2)}
+.progress-bar{width:300px;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:var(--a2);transition:width .3s;border-radius:2px}
+
+/* ── ATTACK LIST ── */
+.attack-body{flex:1;overflow-y:auto;padding:20px 22px}
+.attack-section{margin-bottom:20px}
+.attack-section-header{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.attack-section-header h3{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--gray)}
+.attack-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;transition:.15s}
+.attack-card:hover{border-color:var(--accent);background:rgba(61,127,255,.04)}
+.attack-card .company{font-size:13px;font-weight:600}
+.attack-card .meta{font-size:12px;color:var(--gray);margin-top:2px}
+.attack-card .phone{font-size:13px;color:var(--a2);font-family:monospace;font-weight:500}
+.attack-empty{text-align:center;padding:40px;color:var(--gray);font-size:13px}
+.daily-goal{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between}
+.goal-text{font-size:13px;color:var(--t2)}.goal-numbers{font-size:22px;font-weight:700;color:var(--a2)}
+
+/* ── LEADS LIST ── */
+.leads-body{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.filters{padding:10px 16px;display:flex;gap:6px;align-items:center;border-bottom:1px solid var(--border);flex-wrap:wrap;flex-shrink:0}
+.filter-btn{padding:4px 10px;border-radius:5px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--t2);font-family:inherit;transition:.15s}
+.filter-btn:hover{border-color:var(--accent);color:var(--accent)}
+.filter-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.search-input{padding:5px 10px;background:var(--s2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;font-family:inherit;outline:none;margin-left:auto;width:180px}
+.search-input:focus{border-color:var(--accent)}
+.table-wrap{flex:1;overflow-y:auto}
+table{width:100%;border-collapse:collapse}
+thead{position:sticky;top:0;background:var(--surface);z-index:5}
+th{padding:9px 14px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);border-bottom:1px solid var(--border)}
+td{padding:11px 14px;font-size:13px;border-bottom:1px solid rgba(46,50,72,.4)}
+tr.clickable{cursor:pointer}
+tr.clickable:hover td{background:rgba(255,255,255,.02)}
+.prio-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px}
+.pa{background:var(--red)}.pb{background:var(--yellow)}.pc{background:var(--green)}.pd{background:var(--gray)}
+.flag-tag{font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(255,77,109,.12);color:var(--red);font-weight:500;margin-left:4px}
+.status-pill{font-size:11px;padding:3px 7px;border-radius:5px;font-weight:500;white-space:nowrap}
+.sp-pending{background:rgba(136,146,164,.15);color:var(--gray)}
+.sp-nocontact{background:rgba(255,143,163,.12);color:#ff8fa3}
+.sp-called{background:rgba(61,127,255,.12);color:var(--accent)}
+.sp-interested{background:rgba(255,209,102,.12);color:var(--yellow)}
+.sp-trial{background:rgba(0,212,170,.12);color:var(--a2)}
+.sp-closed{background:rgba(6,214,160,.12);color:var(--green)}
+.sp-discard{background:rgba(136,146,164,.1);color:var(--gray)}
+.table-footer{padding:10px 16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;background:var(--surface)}
+.table-footer p{font-size:12px;color:var(--gray)}
+.empty-state{text-align:center;padding:60px 24px;color:var(--gray)}
+.empty-state .ei{font-size:40px;margin-bottom:12px}
+
+/* ── CARRIER DETAIL ── */
+.detail-body{flex:1;overflow-y:auto;padding:20px 22px;display:flex;flex-direction:column;gap:14px}
+.back-row{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.back-btn{background:none;border:none;color:var(--gray);font-size:13px;cursor:pointer;font-family:inherit;padding:4px 0;display:flex;align-items:center;gap:5px}
+.back-btn:hover{color:var(--text)}
+.carrier-header-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.carrier-name{font-size:18px;font-weight:700;margin-bottom:3px}
+.carrier-meta{font-size:12px;color:var(--gray)}
+.carrier-meta span{color:var(--t2)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.chip{padding:3px 9px;border-radius:5px;font-size:12px;background:var(--s2);border:1px solid var(--border);color:var(--t2)}
+.chip-accent{border-color:var(--accent);color:var(--accent);background:rgba(61,127,255,.08)}
+.phone-big{font-size:20px;font-weight:700;color:var(--a2);text-align:right;font-family:monospace}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:900px){.detail-grid{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:11px;overflow:hidden}
+.card-head{padding:12px 16px;border-bottom:1px solid var(--border);background:var(--s2);display:flex;align-items:center;justify-content:space-between}
+.card-head h3{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--gray)}
+.card-body{padding:16px}
+.script-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:13px;line-height:1.75;color:var(--text)}
+.hl{color:var(--a2);font-weight:600}
+.branch{margin-top:10px;padding:10px 12px;border-radius:6px;font-size:12px}
+.branch-y{background:rgba(6,214,160,.07);border-left:3px solid var(--green)}
+.branch-n{background:rgba(255,77,109,.07);border-left:3px solid var(--red)}
+.branch-lbl{font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.branch-y .branch-lbl{color:var(--green)}.branch-n .branch-lbl{color:var(--red)}
+.sms-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:13px;line-height:1.7;color:var(--text);min-height:80px}
+.copy-btn{padding:5px 10px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--s2);color:var(--t2);font-family:inherit;transition:.15s;display:flex;align-items:center;gap:5px}
+.copy-btn:hover{border-color:var(--a2);color:var(--a2)}
+.copy-btn.copied{border-color:var(--green);color:var(--green)}
+.status-select{padding:6px 10px;background:var(--s2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;font-family:inherit;outline:none;cursor:pointer}
+.status-select:focus{border-color:var(--accent)}
+.text-input{width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:12px;font-family:inherit;outline:none}
+.text-input:focus{border-color:var(--accent)}
+.textarea{width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:12px;font-family:inherit;resize:vertical;min-height:80px;outline:none}
+.textarea:focus{border-color:var(--accent)}
+.checklist{list-style:none;display:flex;flex-direction:column;gap:6px}
+.checklist li{display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 8px;border-radius:6px;background:var(--bg);border:1px solid var(--border)}
+.checklist li .ck{font-size:14px}
+.checklist li .lt{color:var(--gray);font-size:11px;margin-left:auto}
+.sms-note{font-size:11px;color:var(--gray);margin-top:8px;display:flex;align-items:center;gap:5px}
+.gen-btn{display:flex;align-items:center;gap:6px}
+.gen-btn .spin-sm{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;display:none}
+.generating .spin-sm{display:inline-block}
+.diesel-widget{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:12px}
+.diesel-price{font-size:22px;font-weight:700;color:var(--yellow);font-family:monospace}
+.diesel-meta{font-size:11px;color:var(--gray)}
+/* ── SETTINGS ── */
+.settings-body{flex:1;overflow-y:auto;padding:24px}
+.settings-section{background:var(--surface);border:1px solid var(--border);border-radius:11px;margin-bottom:16px;overflow:hidden}
+.settings-section-head{padding:12px 16px;border-bottom:1px solid var(--border);background:var(--s2)}
+.settings-section-head h3{font-size:13px;font-weight:600}
+.settings-section-head p{font-size:12px;color:var(--gray);margin-top:2px}
+.settings-body-inner{padding:16px;display:flex;flex-direction:column;gap:12px}
+.settings-row{display:flex;align-items:flex-start;gap:12px;justify-content:space-between}
+.settings-row label{font-size:12px;color:var(--t2);padding-top:10px;font-weight:500;min-width:120px}
+.settings-row .input-wrap{flex:1}
+.settings-row .input-hint{font-size:11px;color:var(--gray);margin-top:4px}
+.code-block{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;font-family:monospace;font-size:11px;color:var(--t2);line-height:1.6;white-space:pre;overflow-x:auto;max-height:200px;overflow-y:auto}
+.sync-status{font-size:12px;padding:4px 10px;border-radius:6px;font-weight:500}
+.sync-ok{background:rgba(6,214,160,.12);color:var(--green)}
+.sync-err{background:rgba(255,77,109,.12);color:var(--red)}
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--green);color:#0f1117;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;opacity:0;transform:translateY(8px);transition:.2s;z-index:999;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.error{background:var(--red);color:#fff}
+/* DIVIDER */
+.divider{height:1px;background:var(--border);margin:12px 0}
+.row{display:flex;gap:8px;align-items:center}
+.mt8{margin-top:8px}
+.gap-row{display:flex;justify-content:space-between;align-items:center}
+.mono{font-family:monospace}
+.files-body{flex:1;overflow-y:auto;padding:20px 22px}
+.file-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:.15s;gap:12px}
+.file-card:hover{border-color:var(--accent);background:rgba(61,127,255,.04)}
+.file-card.active-file{border-color:var(--a2);background:rgba(0,212,170,.05)}
+.file-name{font-size:13px;font-weight:600;margin-bottom:3px;font-family:monospace}
+.file-date{font-size:12px;color:var(--gray);margin-bottom:8px}
+.file-stats{display:flex;gap:10px;flex-wrap:wrap}
+.file-stats span{font-size:12px;color:var(--t2)}
+.file-total{font-size:28px;font-weight:700;color:var(--accent);flex-shrink:0;text-align:right}
+.file-total-label{font-size:10px;color:var(--gray);text-align:right}
+.file-actions{display:flex;gap:6px;margin-top:10px}
+.active-filter-bar{padding:8px 22px;background:rgba(0,212,170,.08);border-bottom:1px solid var(--a2);display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--a2);flex-shrink:0}
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--gray)}
+</style>
+<link rel="manifest" id="pwa-manifest">
+<meta name="theme-color" content="#00d4aa">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="DispatchOS">
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="setup">
+  <div class="setup-card">
+    <h1>🚛 DispatchOS</h1>
+    <p>I-95 Corridor Lead System — First-time setup</p>
+    <div class="form-group">
+      <label>YOUR NAME</label>
+      <input class="form-input" id="setup-name" placeholder="e.g. Carlos Rodriguez" />
+    </div>
+    <div class="form-group">
+      <label>YOUR US PHONE NUMBER (Google Voice)</label>
+      <input class="form-input" id="setup-phone" placeholder="e.g. (919) 555-0100" />
+    </div>
+    <div class="form-group">
+      <label>DISPATCH SPECIALTY (shown in scripts)</label>
+      <input class="form-input" id="setup-specialty" value="Southeast to Northeast I-95 Corridor" />
+    </div>
+    <button class="btn btn-success" style="width:100%;margin-top:8px" onclick="finishSetup()">Get Started →</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" class="hidden">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="logo">
+      <div class="logo-name">DISPATCH OS</div>
+      <div class="logo-sub">I-95 Lead System</div>
+    </div>
+    <nav class="nav">
+      <button class="nav-item active" id="nav-upload" onclick="showPanel('upload')">
+        <span class="nav-icon">📂</span> Upload PDF
+      </button>
+      <button class="nav-item" id="nav-attack" onclick="showPanel('attack')">
+        <span class="nav-icon">🎯</span> Daily Attack
+      </button>
+      <button class="nav-item" id="nav-leads" onclick="showPanel('leads');renderLeads()">
+        <span class="nav-icon">📋</span> All Leads
+      </button>
+      <button class="nav-item" id="nav-files" onclick="showPanel('files');renderFiles()">
+        <span class="nav-icon">📁</span> PDF Files
+      </button>
+      <button class="nav-item" id="nav-settings" onclick="showPanel('settings')">
+        <span class="nav-icon">⚙️</span> Settings
+      </button>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="user-chip">
+        <div class="user-name" id="sb-name">—</div>
+        <div class="user-phone" id="sb-phone">—</div>
+        <div class="stats-mini">
+          <div class="stat-pill">
+            <div class="n" id="sb-total" style="color:var(--accent)">0</div>
+            <div class="l">Total</div>
+          </div>
+          <div class="stat-pill">
+            <div class="n" id="sb-a" style="color:var(--red)">0</div>
+            <div class="l">Prio A</div>
+          </div>
+          <div class="stat-pill">
+            <div class="n" id="sb-closed" style="color:var(--green)">0</div>
+            <div class="l">Closed</div>
+          </div>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--gray)">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Pipeline to 5 trucks</span><span id="sb-pipeline-label">0/5</span></div>
+          <div style="background:var(--border);border-radius:3px;height:4px"><div id="sb-pipeline-bar" style="height:4px;background:var(--a2);border-radius:3px;width:0%;transition:.3s"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+
+    <!-- ── UPLOAD ── -->
+    <div class="screen-panel active" id="panel-upload">
+      <div class="topbar">
+        <div class="topbar-title">
+          <h2>Upload FMCSA Register PDF</h2>
+          <p>System extracts only Motor Carriers of Property — brokers and household goods excluded automatically</p>
+        </div>
+        <div id="upload-badge"></div>
+      </div>
+      <div class="upload-body">
+        <div class="upload-zone" id="upload-zone"
+          onclick="document.getElementById('file-input').click()"
+          ondragover="e=event;e.preventDefault();this.classList.add('drag')"
+          ondragleave="this.classList.remove('drag')"
+          ondrop="e=event;e.preventDefault();this.classList.remove('drag');handleFile(e.dataTransfer.files[0])">
+          <div class="upload-icon" id="upload-icon">📄</div>
+          <div class="upload-title" id="upload-title">Drop FMCSA PDF here or click to browse</div>
+          <div class="upload-sub" id="upload-sub">Supports daily FMCSA Register PDFs · All pages processed automatically</div>
+        </div>
+        <input type="file" id="file-input" accept=".pdf" style="display:none" onchange="handleFile(this.files[0])">
+        <div class="result-card hidden" id="result-card">
+          <div class="result-header">
+            <h3>Extraction Results</h3>
+            <span class="badge badge-green" id="result-badge">Ready</span>
+          </div>
+          <div id="result-rows"></div>
+          <div class="result-footer">
+            <button class="btn btn-success" style="width:100%" onclick="confirmExtraction()">✓ Add to Lead Database →</button>
+          </div>
+        </div>
+        <div id="pdfs-history" style="max-width:580px;margin:16px auto 0"></div>
+      </div>
+    </div>
+
+    <!-- ── ATTACK LIST ── -->
+    <div class="screen-panel" id="panel-attack">
+      <div class="topbar">
+        <div class="topbar-title">
+          <h2>Daily Attack List</h2>
+          <p id="attack-date">—</p>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="renderAttack()">↻ Refresh</button>
+      </div>
+      <div class="attack-body" id="attack-body"></div>
+    </div>
+
+    <!-- ── LEADS ── -->
+    <div class="screen-panel" id="panel-leads">
+      <div class="topbar">
+        <div class="topbar-title">
+          <h2>All Leads</h2>
+          <p id="leads-subtitle">—</p>
+        </div>
+        <div class="row">
+          <button class="btn btn-outline btn-sm" onclick="exportCSV()">↓ CSV</button>
+          <button class="btn btn-outline btn-sm" onclick="syncSheets()" id="sync-btn">↗ Sync Sheets</button>
+        </div>
+      </div>
+      <div class="leads-body">
+        <div class="active-filter-bar hidden" id="file-filter-bar"><span id="file-filter-label">—</span><button class="btn btn-outline btn-sm" onclick="clearFileFilter()">✕ Clear filter</button></div>
+        <div class="filters">
+          <button class="filter-btn active" onclick="filterLeads('all',this)">All</button>
+          <button class="filter-btn" onclick="filterLeads('A',this)">🔴 Priority A</button>
+          <button class="filter-btn" onclick="filterLeads('B',this)">🟡 Priority B</button>
+          <button class="filter-btn" onclick="filterLeads('pending',this)">📞 Pending</button>
+          <button class="filter-btn" onclick="filterLeads('nocontact',this)">📵 No Answer</button>
+          <button class="filter-btn" onclick="filterLeads('interested',this)">⭐ Interested</button>
+          <button class="filter-btn" onclick="filterLeads('closed',this)">✅ Closed</button>
+          <button class="filter-btn" onclick="filterLeads('flagged',this)">🚩 Flagged</button>
+          <select class="search-input" id="state-filter-select" onchange="filterByStateValue(this.value)" style="width:130px;cursor:pointer"><option value="">All States</option></select>
+          <input class="search-input" placeholder="🔍 Search..." oninput="searchLeads(this.value)">
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Company</th>
+                <th>Officer</th>
+                <th>City, State</th>
+                <th>Phone</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>PDF Date</th>
+              </tr>
+            </thead>
+            <tbody id="leads-tbody"></tbody>
+          </table>
+          <div class="empty-state hidden" id="leads-empty">
+            <div class="ei">📭</div>
+            <p>No leads match this filter.</p>
+          </div>
+        </div>
+        <div class="table-footer">
+          <p id="leads-count">0 carriers</p>
+          <button class="btn btn-primary btn-sm" onclick="openTopLead()">→ Open Top Lead</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CARRIER DETAIL ── -->
+    <div class="screen-panel" id="panel-detail">
+      <div class="topbar" style="padding:12px 22px">
+        <div class="row" style="gap:10px">
+          <button class="back-btn" onclick="goBack()">← Back</button>
+          <div class="topbar-title">
+            <h2 id="d-company-topbar">—</h2>
+            <p id="d-meta-topbar">—</p>
+          </div>
+        </div>
+        <div class="row" style="gap:8px">
+          <select class="status-select" id="d-status-select" onchange="updateStatus(this.value)">
+            <option value="pending">📞 Pending</option>
+            <option value="nocontact">📵 No Answer</option>
+            <option value="called">💬 In Contact</option>
+            <option value="interested">⭐ Interested</option>
+            <option value="trial">🚛 Trial Load</option>
+            <option value="closed">✅ Closed</option>
+            <option value="discard">❌ Discard</option>
+          </select>
+          <button class="btn btn-primary btn-sm" id="d-call-btn" onclick="logCall()">📞 Log Call</button>
+        </div>
+      </div>
+      <div class="detail-body">
+        <!-- Carrier header -->
+        <div class="carrier-header-card">
+          <div>
+            <div class="carrier-name" id="d-company">—</div>
+            <div class="carrier-meta">Officer: <span id="d-officer">—</span></div>
+            <div class="chips">
+              <div class="chip">📍 <span id="d-city">—</span></div>
+              <div class="chip mono">DOT: <span id="d-dot">—</span></div>
+              <div class="chip">📅 <span id="d-pdf-date">—</span></div>
+              <div class="chip chip-accent" id="d-prio-chip">—</div>
+              <div id="d-flag-chip" class="hidden chip" style="border-color:var(--red);color:var(--red);background:rgba(255,77,109,.08)">🚩 Review name</div>
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div class="phone-big" id="d-phone">—</div>
+            <div style="font-size:11px;color:var(--gray);margin-top:3px">FMCSA Register Phone</div>
+            <div class="row" style="gap:6px;margin-top:10px;justify-content:flex-end">
+              <button class="btn btn-primary btn-sm" id="d-safer-btn" onclick="openSAFER()">🔍 SAFER →</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-grid">
+          <!-- CALL SCRIPT -->
+          <div class="card">
+            <div class="card-head">
+              <h3>📞 Call Script</h3>
+              <button class="copy-btn" onclick="copyScript()">📋 Copy</button>
+            </div>
+            <div class="card-body">
+              <div class="script-box" id="d-script">—</div>
+            </div>
+          </div>
+
+          <!-- SMS GENERATOR -->
+          <div class="card">
+            <div class="card-head">
+              <h3>📱 Follow-up Text</h3>
+              <div class="row" style="gap:6px">
+                <button class="btn btn-outline btn-sm gen-btn" id="gen-btn" onclick="generateSMS()">
+                  <span class="spin-sm" id="sms-spinner"></span>
+                  <span id="gen-btn-text">✨ Regenerate</span>
+                </button>
+                <button class="copy-btn" id="sms-copy-btn" onclick="copySMS()">📋 Copy</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div style="font-size:11px;color:var(--gray);margin-bottom:8px">Send via Google Voice when they don't answer. Each message is unique.</div>
+              <div class="sms-box" id="d-sms">—</div>
+              <div class="sms-note">
+                <span style="color:var(--a2)">✦</span>
+                <span id="sms-note-text">AI-generated · unique for this carrier</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NOTES + EQUIPMENT + EMAIL -->
+        <div class="card">
+          <div class="card-head">
+            <h3>📝 Contact Notes</h3>
+            <span class="badge badge-gray" id="d-last-contact">Never contacted</span>
+          </div>
+          <div class="card-body">
+            <div class="detail-grid" style="margin-bottom:10px">
+              <div>
+                <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:5px;font-weight:500">EQUIPMENT TYPE</label>
+                <input class="text-input" id="d-equipment" placeholder="dry van, reefer, flatbed, hotshot..." oninput="updateField('equipment',this.value)">
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:5px;font-weight:500">FOLLOW-UP DATE</label>
+                <input class="text-input" id="d-followup" type="date" oninput="updateField('followUpDate',this.value)">
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:5px;font-weight:500">EMAIL (from SAFER)</label>
+                <input class="text-input" id="d-email" placeholder="Paste from SAFER Licensing & Insurance" oninput="updateField('email',this.value)">
+              </div>
+            </div>
+            <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:5px;font-weight:500">NOTES</label>
+            <textarea class="textarea" id="d-notes" placeholder="Interest level, equipment confirmed, follow-up date, what they said..." oninput="updateField('notes',this.value)"></textarea>
+            <div class="row" style="justify-content:flex-end;margin-top:10px;gap:8px">
+              <span id="autosave-indicator" style="font-size:11px;color:var(--gray)">Auto-saved</span>
+              <button class="btn btn-primary btn-sm" onclick="saveCarrier()">Save & Sync</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- NEW AUTHORITY CHECKLIST -->
+        <div class="card">
+          <div class="card-head">
+            <h3>✅ New Authority Checklist</h3>
+            <button class="copy-btn" onclick="copyChecklist()">📋 Copy to send</button>
+          </div>
+          <div class="card-body">
+            <div style="font-size:12px;color:var(--gray);margin-bottom:10px">Share this via text after the call — positions you as the most professional dispatcher they spoke with today.</div>
+            <ul class="checklist" id="d-checklist">
+              <li><span class="ck">✅</span><span>Active MC/DOT number confirmed</span><span class="lt">Already done</span></li>
+              <li><span class="ck">⬜</span><span>Certificate of Insurance (COI) — $1M liability minimum</span><span class="lt">Need day 1</span></li>
+              <li><span class="ck">⬜</span><span>W-9 form ready to send brokers</span><span class="lt">Need day 1</span></li>
+              <li><span class="ck">⬜</span><span>Voided business check (for factoring setup)</span><span class="lt">Day 1-3</span></li>
+              <li><span class="ck">⬜</span><span>ELD device active and compliant</span><span class="lt">Before first load</span></li>
+              <li><span class="ck">⬜</span><span>Factoring company setup (recommended — get paid in 24hrs)</span><span class="lt">Week 1</span></li>
+              <li><span class="ck">⬜</span><span>Carrier packet PDF ready to email brokers</span><span class="lt">Before first load</span></li>
+              <li><span class="ck">⬜</span><span>Signed dispatch agreement with me</span><span class="lt">Before I dispatch you</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- SAFER LOOKUP CARD -->
+        <div class="card">
+          <div class="card-head"><h3>🔍 Get Email via SAFER</h3></div>
+          <div class="card-body">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+              <div>
+                <div style="font-size:13px;margin-bottom:3px">Go to SAFER → search DOT number → click <strong>Licensing &amp; Insurance</strong> → find email</div>
+                <div style="font-size:12px;color:var(--gray)">DOT: <span class="mono" id="d-dot-safer">—</span> · Only do this for Priority A leads</div>
+              </div>
+              <button class="btn btn-outline btn-sm" onclick="openSAFER()">Open SAFER →</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── PDF FILES ── -->
+    <div class="screen-panel" id="panel-files">
+      <div class="topbar">
+        <div class="topbar-title">
+          <h2>PDF Files</h2>
+          <p id="files-subtitle">Browse carriers by upload date</p>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="clearFileFilter()">Show All Carriers</button>
+      </div>
+      <div class="files-body" id="files-body"></div>
+    </div>
+
+    <!-- ── SETTINGS ── -->
+    <div class="screen-panel" id="panel-settings">
+      <div class="topbar">
+        <div class="topbar-title"><h2>Settings</h2><p>Configure sync, diesel price, and your profile</p></div>
+        <button class="btn btn-success btn-sm" onclick="saveSettings()">Save Settings</button>
+      </div>
+      <div class="settings-body">
+
+        <!-- Profile -->
+        <div class="settings-section">
+          <div class="settings-section-head"><h3>👤 Your Profile</h3><p>Used in call scripts and SMS messages</p></div>
+          <div class="settings-body-inner">
+            <div class="settings-row">
+              <label>Your Name</label>
+              <div class="input-wrap"><input class="form-input" id="s-name" placeholder="Your name"></div>
+            </div>
+            <div class="settings-row">
+              <label>Your Phone</label>
+              <div class="input-wrap"><input class="form-input" id="s-phone" placeholder="Your Google Voice number"></div>
+            </div>
+            <div class="settings-row">
+              <label>Specialty</label>
+              <div class="input-wrap"><input class="form-input" id="s-specialty" placeholder="Southeast to Northeast I-95 Corridor"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Diesel -->
+        <div class="settings-section">
+          <div class="settings-section-head"><h3>⛽ Diesel Price</h3><p>Update weekly from GasBuddy or EIA.gov — shown during calls as context</p></div>
+          <div class="settings-body-inner">
+            <div class="settings-row">
+              <label>East Coast $/gal</label>
+              <div class="input-wrap">
+                <input class="form-input" id="s-diesel" type="number" step="0.01" placeholder="4.89">
+                <div class="input-hint">Update every Monday from eia.gov/petroleum/gasdiesel</div>
+              </div>
+            </div>
+            <div class="settings-row">
+              <label>Last Updated</label>
+              <div class="input-wrap"><input class="form-input" id="s-diesel-date" type="date"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Google Sheets -->
+        <div class="settings-section">
+          <div class="settings-section-head"><h3>📊 Google Sheets Sync</h3><p>Syncs status, notes and equipment after each save</p></div>
+          <div class="settings-body-inner">
+            <div class="settings-row">
+              <label>Apps Script URL</label>
+              <div class="input-wrap">
+                <input class="form-input" id="s-sheets-url" placeholder="https://script.google.com/macros/s/.../exec">
+                <div class="input-hint">Paste your Google Apps Script Web App URL here · <a href="#" onclick="showScriptInstructions()" style="color:var(--accent)">How to set up →</a></div>
+              </div>
+            </div>
+            <div id="sheets-status-row" class="row" style="gap:8px">
+              <button class="btn btn-outline btn-sm" onclick="testSheets()">Test Connection</button>
+              <span id="sheets-status" class="sync-status" style="display:none"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Apps Script Instructions -->
+        <div class="settings-section" id="script-instructions" style="display:none">
+          <div class="settings-section-head"><h3>📋 Apps Script Setup Instructions</h3></div>
+          <div class="settings-body-inner">
+            <div style="font-size:13px;color:var(--t2);line-height:1.7">
+              <b>Step 1:</b> Open your Google Sheet → Extensions → Apps Script<br>
+              <b>Step 2:</b> Delete existing code, paste the code below<br>
+              <b>Step 3:</b> Click Deploy → New Deployment → Web App<br>
+              <b>Step 4:</b> Set "Who has access" to "Anyone" → Deploy<br>
+              <b>Step 5:</b> Copy the Web App URL and paste it above
+            </div>
+            <div style="margin-top:12px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                <span style="font-size:12px;color:var(--gray)">Paste this into Apps Script editor:</span>
+                <button class="copy-btn" onclick="copyAppScript()">📋 Copy Code</button>
+              </div>
+              <div class="code-block" id="apps-script-code"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Install App -->
+        <div class="settings-section">
+          <div class="settings-section-head"><h3>📲 Install as App</h3><p>Install DispatchOS on your device — works on Android and desktop Chrome/Brave</p></div>
+          <div class="settings-body-inner">
+            <div class="settings-row">
+              <label>Install</label>
+              <div class="input-wrap">
+                <button class="btn btn-success" id="install-btn" onclick="triggerInstall()" style="display:none">⬇ Install DispatchOS App</button>
+                <div id="install-status" style="font-size:13px;color:var(--gray)">Loading install status...</div>
+                <div class="input-hint">To install on Android or share with friends: host the file on GitHub Pages (free) — see instructions below.</div>
+              </div>
+            </div>
+            <div class="settings-row">
+              <label>GitHub Pages</label>
+              <div class="input-wrap">
+                <div style="font-size:13px;color:var(--t2);line-height:1.8">
+                  1. Go to <strong>github.com</strong> → Sign up free<br>
+                  2. New repository → name it <strong>dispatchos</strong><br>
+                  3. Upload <strong>DispatchOS.html</strong> → rename it to <strong>index.html</strong><br>
+                  4. Settings → Pages → Branch: main → Save<br>
+                  5. Your app URL: <strong>yourusername.github.io/dispatchos</strong><br>
+                  6. Share that URL — anyone can open it and install it as an app
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="settings-section">
+          <div class="settings-section-head"><h3>⚠️ Data Management</h3></div>
+          <div class="settings-body-inner">
+            <div class="row" style="justify-content:space-between">
+              <div>
+                <div style="font-size:13px">Clear all lead data</div>
+                <div style="font-size:12px;color:var(--gray)">Removes all carriers and PDF history from this browser</div>
+              </div>
+              <button class="btn btn-danger btn-sm" onclick="confirmClear()">Clear All Data</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- end main-content -->
+</div><!-- end app -->
+
+<!-- PROCESSING OVERLAY -->
+<div class="processing-overlay hidden" id="processing">
+  <div class="spinner"></div>
+  <div class="processing-text" id="processing-text">Reading PDF...</div>
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// ═══ STATE ═══
+let S = {
+  carriers: [],
+  pdfsProcessed: [],
+  pendingExtraction: [],
+  currentCarrierId: null,
+  currentFilter: 'all',
+  currentFileFilter: '',
+  currentStateFilter: '',
+  currentSearch: '',
+  prevPanel: 'leads',
+  settings: {
+    yourName: '', yourPhone: '', specialty: 'Southeast to Northeast I-95 Corridor',
+    sheetsUrl: '', dieselPrice: 4.89, dieselDate: ''
+  }
+};
+
+function saveState() {
+  try { localStorage.setItem('dispatchos_v2', JSON.stringify(S)); } catch(e) {}
+}
+
+function loadState() {
+  try {
+    const d = localStorage.getItem('dispatchos_v2');
+    if (d) { const p = JSON.parse(d); S.carriers = p.carriers||[]; S.pdfsProcessed = p.pdfsProcessed||[]; S.settings = {...S.settings,...(p.settings||{})}; }
+  } catch(e) {}
+}
+
+// ═══ SETUP ═══
+function finishSetup() {
+  const n = document.getElementById('setup-name').value.trim();
+  const p = document.getElementById('setup-phone').value.trim();
+  const sp = document.getElementById('setup-specialty').value.trim();
+  if (!n) { toast('Enter your name'); return; }
+  S.settings.yourName = n;
+  S.settings.yourPhone = p;
+  S.settings.specialty = sp || S.settings.specialty;
+  saveState();
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  updateSidebar();
+  renderUploadHistory();
+}
+
+function checkSetup() {
+  loadState();
+  if (S.settings.yourName) {
+    document.getElementById('setup').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    updateSidebar();
+    renderUploadHistory();
+  }
+}
+
+// ═══ NAVIGATION ═══
+function showPanel(name) {
+  document.querySelectorAll('.screen-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  const ni = document.getElementById('nav-' + name);
+  if (ni) ni.classList.add('active');
+  if (name === 'attack') renderAttack();
+  if (name === 'settings') loadSettingsForm();
+}
+
+function goBack() {
+  showPanel(S.prevPanel);
+}
+
+function openCarrier(id) {
+  S.currentCarrierId = id;
+  S.prevPanel = document.querySelector('.screen-panel.active')?.id?.replace('panel-','') || 'leads';
+  renderDetail();
+  showPanel('detail');
+}
+
+function openTopLead() {
+  const visible = getFilteredCarriers();
+  if (visible.length) openCarrier(visible[0].id);
+}
+
+// ═══ SIDEBAR ═══
+function updateSidebar() {
+  document.getElementById('sb-name').textContent = S.settings.yourName || '—';
+  document.getElementById('sb-phone').textContent = S.settings.yourPhone || '—';
+  document.getElementById('sb-total').textContent = S.carriers.length;
+  document.getElementById('sb-a').textContent = S.carriers.filter(c => c.priority === 'A' && !c.flag).length;
+  const closedN = S.carriers.filter(c=>c.status==='closed').length;
+  document.getElementById('sb-closed').textContent = closedN;
+  const pBar = document.getElementById('sb-pipeline-bar');
+  const pLbl = document.getElementById('sb-pipeline-label');
+  if (pBar) pBar.style.width = Math.min(100,Math.round((closedN/5)*100)) + '%';
+  if (pLbl) pLbl.textContent = closedN + '/5 trucks';
+}
+
+// ═══ PDF PARSING ═══
+async function handleFile(file) {
+  if (!file || !file.name.endsWith('.pdf')) { toast('Please select a PDF file', true); return; }
+  if (S.pdfsProcessed.includes(file.name)) {
+    if (!confirm(`${file.name} was already processed. Add again?`)) return;
+  }
+  setProcessing(true, 'Reading PDF...', 0);
+  try {
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+    const total = pdf.numPages;
+    let allText = '';
+    for (let i = 1; i <= total; i++) {
+      setProcessing(true, `Processing page ${i} of ${total}...`, Math.round((i/total)*80));
+      const page = await pdf.getPage(i);
+      const tc = await page.getTextContent();
+      allText += tc.items.map(i => i.str).join(' ') + ' ';
+    }
+    setProcessing(true, 'Extracting carriers...', 85);
+    const carriers = parseCarriers(allText, file.name);
+    setProcessing(true, 'Filtering & prioritizing...', 95);
+    S.pendingExtraction = carriers;
+    setProcessing(false);
+    showExtractionResults(file.name, carriers);
+  } catch(err) {
+    setProcessing(false);
+    toast('Error reading PDF: ' + err.message, true);
+  }
+}
+
+function reconstructLines(items) { return items.map(i=>i.str).join(' '); } // kept for compat
+
+const PRIORITY_A = ['NC','SC','GA','VA','MD'];
+const PRIORITY_B = ['NJ','NY','PA','CT','DE'];
+const PRIORITY_C = ['OH','TN','FL','WV','AL'];
+const CA_PROVINCES = ['ON','BC','AB','QC','MB','NB','SK','NS','PE','NL'];
+const FLAG_WORDS = ['towing','tow service','crane','junk','medical waste','moving company','plumbing','electrical','construct','concrete','painting','salon','cleaning','lawn','landscap','roofing','hvac','storage','boat','piano','funeral','daycare','childcare','mowing','dumpster','grading','excavat','pressure wash','pool service','glass repair','carpet'];
+
+function parseCarriers(text, filename) {
+  // Step 1 — normalize all whitespace to single spaces
+  const flat = text.replace(/\s+/g, ' ');
+
+  // Step 2 — find the Motor Carrier of Property section (last occurrence)
+  const MC_MARKER = 'MOTOR CARRIER OF PROPERTY (EXCEPT HOUSEHOLD GOODS)';
+  let si = -1;
+  let tmp = 0, found;
+  while ((found = flat.indexOf(MC_MARKER, tmp)) !== -1) { si = found; tmp = found + 1; }
+
+  if (si === -1) {
+    // fallback: find any "MOTOR CARRIER OF PROPERTY" not followed by HOUSEHOLD
+    tmp = 0;
+    while ((found = flat.indexOf('MOTOR CARRIER OF PROPERTY', tmp)) !== -1) {
+      const nxt = flat.slice(found + 25, found + 65);
+      if (!nxt.toUpperCase().includes('HOUSEHOLD')) si = found;
+      tmp = found + 1;
+    }
+  }
+  if (si === -1) return [];
+
+  // Step 3 — find section end (next major section)
+  const ENDS = ['BROKER OF HOUSEHOLD','BROKER OF PROPERTY','FREIGHT FORWARDER',
+                'MOTOR CARRIER OF HOUSEHOLD','MOTOR CARRIER OF PASSENGERS'];
+  let ei = flat.length;
+  for (const e of ENDS) {
+    const i = flat.indexOf(e, si + 40);
+    if (i !== -1 && i < ei) ei = i;
+  }
+
+  const section = flat.slice(si, ei);
+
+  // Step 4 — split into records using phone numbers as delimiters
+  // Phone: +1 (NNN) NNN-NNNN  OR  raw 10-digit  OR  11-digit starting with 1
+  const PHONE_RE = /(\+1\s*\(?\d{3}\)?\s*\d{3}[-.\s]\d{4}|\b\d{10,11}\b)/g;
+
+  const chunks = [];
+  let lastEnd = 0;
+  let m;
+  while ((m = PHONE_RE.exec(section)) !== null) {
+    const chunkText = section.slice(lastEnd, m.index + m[0].length).trim();
+    if (chunkText.length > 10) chunks.push({ text: chunkText, phone: m[1] });
+    lastEnd = m.index + m[0].length;
+  }
+
+  // Step 5 — parse each chunk
+  const carriers = [];
+  const seen = new Set();
+  const dm = filename.match(/(\d{4})(\d{2})(\d{2})/);
+  const pdfDate = dm ? `${dm[2]}/${dm[3]}/${dm[1]}` : filename;
+
+  for (const chunk of chunks) {
+    const c = parseChunk(chunk.text, chunk.phone, pdfDate, filename);
+    if (!c) continue;
+    if (CA_PROVINCES.includes(c.state)) continue;
+    const key = c.dot + '_' + c.filingDate;
+    if (!seen.has(key)) { seen.add(key); carriers.push(c); }
+  }
+  return carriers;
+}
+
+function parseChunk(text, phone, pdfDate, filename) {
+  // Skip header rows and page markers
+  if (/USDOT Number|Legal Business|Run Date|Run Time|Page \d+|OPERATING AUTHORITY/i.test(text)) return null;
+
+  // DOT number: 5-8 consecutive digits near the start
+  const dotM = text.match(/\b(\d{5,8})\b/);
+  if (!dotM) return null;
+  const dot = dotM[1];
+
+  // Filing date MM/DD/YYYY
+  const dateM = text.match(/\b(\d{2}\/\d{2}\/\d{4})\b/);
+  if (!dateM) return null;
+  const filingDate = dateM[1];
+
+  // Company: between DOT and date
+  const dotEnd = text.indexOf(dot) + dot.length;
+  const dateIdx = text.indexOf(filingDate);
+  if (dateIdx <= dotEnd) return null;
+  const company = text.slice(dotEnd, dateIdx).replace(/\s+/g, ' ').trim();
+  if (!company || company.length < 2) return null;
+
+  // Address section: after date
+  const afterDate = text.slice(dateIdx + filingDate.length).trim();
+
+  // Extract state: look for ", XX NNNNN US" pattern
+  const stateM = afterDate.match(/,\s*([A-Z]{2})\s+\d{4,6}(?:-\d{4})?\s*(?:US|CA)\b/i);
+  if (!stateM) return null;
+
+  const state = stateM[1].toUpperCase();
+  if (CA_PROVINCES.includes(state)) return null;
+
+  // City: last word/phrase before the state in the address
+  const addrPart = afterDate.slice(0, stateM.index);
+  const commas = addrPart.split(',');
+  const city = commas.length >= 2 ? commas[commas.length - 1].trim() : commas[0].trim();
+
+  // Officer: text after "US" marker — strip phone numbers cleanly
+  const usEnd = stateM.index + stateM[0].length;
+  let officer = afterDate.slice(usEnd).replace(/\s+/g, ' ').trim();
+  officer = officer.replace(/\+1\s*\(?\d{3}\)?\s*\d{3}[-\.\s]\d{4}/g, '');
+  officer = officer.replace(/\b\d{7,}\b/g, '');
+  officer = officer.replace(/[+().]/g, '').replace(/\s+/g, ' ').trim();
+
+  let priority = 'D';
+  if (PRIORITY_A.includes(state)) priority = 'A';
+  else if (PRIORITY_B.includes(state)) priority = 'B';
+  else if (PRIORITY_C.includes(state)) priority = 'C';
+
+  const nl = company.toLowerCase();
+  const flag = FLAG_WORDS.some(w => nl.includes(w));
+
+  return {
+    id: dot + '_' + filingDate.replace(/\//g,''),
+    dot, company, filingDate, city, state, officer,
+    phone: phone ? phone.replace(/\D/g,'') : '',
+    priority, flag, pdfDate, pdfFile: filename,
+    status: 'pending', equipment: '', email: '', notes: '',
+    textSent: false, callDate: '',
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+  };
+}
+
+
+function showExtractionResults(filename, carriers) {
+  const dup = carriers.filter(c => S.carriers.some(e => e.id === c.id)).length;
+  const net = carriers.length - dup;
+  const byPrio = {A:0,B:0,C:0,D:0};
+  carriers.forEach(c => { if (!c.flag) byPrio[c.priority]++; });
+  const flagged = carriers.filter(c => c.flag).length;
+
+  const dm = filename.match(/(\d{4})(\d{2})(\d{2})/);
+  const dateStr = dm ? `${dm[2]}/${dm[3]}/${dm[1]}` : filename;
+
+  document.getElementById('upload-zone').classList.add('loaded');
+  document.getElementById('upload-icon').textContent = '✅';
+  document.getElementById('upload-title').textContent = `${filename} processed`;
+  document.getElementById('upload-sub').textContent = `Register date: ${dateStr} · Click to load another PDF`;
+
+  const rows = [
+    ['File', `<span class="mono">${filename}</span>`],
+    ['Register date', dateStr],
+    ['Motor Carriers of Property found', `<span style="color:var(--a2);font-weight:700">${carriers.length} carriers</span>`],
+    ['Brokers & others excluded', `<span style="color:var(--gray)">Filtered automatically</span>`],
+    ['🔴 Priority A (NC, SC, GA, VA, MD)', `<span style="color:var(--red)">${byPrio.A} carriers</span>`],
+    ['🟡 Priority B (NJ, NY, PA, CT, DE)', `<span style="color:var(--yellow)">${byPrio.B} carriers</span>`],
+    ['🟢 Priority C (OH, TN, FL...)', `<span style="color:var(--green)">${byPrio.C} carriers</span>`],
+    ['🚩 Flagged (review name)', `<span style="color:var(--red)">${flagged} carriers</span>`],
+    ['Duplicates (already in database)', `<span style="color:var(--gray)">${dup} carriers</span>`],
+    ['Net new leads', `<span style="color:var(--a2);font-weight:700">${net} carriers</span>`],
+  ];
+
+  document.getElementById('result-rows').innerHTML = rows.map(([l,v]) =>
+    `<div class="result-row"><span class="lbl">${l}</span><span class="val">${v}</span></div>`
+  ).join('');
+  document.getElementById('result-card').classList.remove('hidden');
+}
+
+function confirmExtraction() {
+  const newOnes = S.pendingExtraction.filter(c => !S.carriers.some(e => e.id === c.id));
+  S.carriers.push(...newOnes);
+  const filename = S.pendingExtraction[0]?.pdfFile;
+  if (filename && !S.pdfsProcessed.includes(filename)) S.pdfsProcessed.push(filename);
+  S.pendingExtraction = [];
+  saveState();
+  updateSidebar();
+  renderUploadHistory();
+  toast(`✓ ${newOnes.length} new leads added to database`);
+  document.getElementById('result-card').classList.add('hidden');
+  document.getElementById('file-input').value = '';
+}
+
+function renderUploadHistory() {
+  const el = document.getElementById('pdfs-history');
+  if (!S.pdfsProcessed.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div style="max-width:580px">
+      <div style="font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;font-weight:600">PDFs Processed</div>
+      ${S.pdfsProcessed.map(f => {
+        const m = f.match(/(\d{4})(\d{2})(\d{2})/);
+        const d = m ? `${m[2]}/${m[3]}/${m[1]}` : f;
+        const count = S.carriers.filter(c => c.pdfFile === f).length;
+        return `<div style="display:flex;justify-content:space-between;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:7px;margin-bottom:5px;font-size:12px">
+          <span style="color:var(--t2)">${f}</span>
+          <span style="color:var(--gray)">${d} · ${count} carriers</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+// ═══ ATTACK LIST ═══
+function getOverdueFollowUps() {
+  const today = new Date().toISOString().slice(0,10);
+  return S.carriers.filter(c => c.followUpDate && c.followUpDate <= today && !['closed','discard'].includes(c.status));
+}
+
+function renderAttack() {
+  const now = new Date();
+  document.getElementById('attack-date').textContent = now.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const pending = S.carriers.filter(c => c.priority === 'A' && !c.flag && c.status === 'pending').slice(0,5);
+  const noAnswer = S.carriers.filter(c => c.status === 'nocontact').slice(0,3);
+  const hot = S.carriers.filter(c => c.status === 'interested').slice(0,3);
+
+  const totalCalls = pending.length + noAnswer.length;
+  const overdue = getOverdueFollowUps();
+  document.getElementById('attack-body').innerHTML = `
+    <div class="daily-goal">
+      <div class="goal-text">Today's goal: ${totalCalls} calls · ${noAnswer.length + hot.length} follow-ups</div>
+      <div class="goal-numbers">${S.carriers.filter(c=>c.status==='closed').length} / 5 trucks</div>
+    </div>
+    ${overdue.length ? renderAttackSection('🔔 Follow-up Due Today', overdue, '') : ''}
+    ${renderAttackSection('📞 Call First — Priority A, Never Contacted', pending, 'No Priority A leads pending. Upload more PDFs or check All Leads.')}
+    ${renderAttackSection('📵 Follow Up — No Answer Yesterday', noAnswer, 'No unanswered leads.')}
+    ${renderAttackSection('⭐ Hot Leads — Expressed Interest', hot, 'No hot leads right now.')}
+  `;
+}
+
+function renderAttackSection(title, carriers, emptyMsg) {
+  return `
+    <div class="attack-section">
+      <div class="attack-section-header"><h3>${title}</h3></div>
+      ${carriers.length ? carriers.map(c => `
+        <div class="attack-card" onclick="openCarrier('${c.id}')">
+          <div>
+            <div class="company">${c.company}</div>
+            <div class="meta">${c.city}, ${c.state} · ${c.officer || 'Officer unknown'} · ${c.pdfDate}</div>
+          </div>
+          <div class="phone">${formatPhone(c.phone)}</div>
+        </div>`).join('') : `<div class="attack-empty">${emptyMsg}</div>`}
+    </div>`;
+}
+
+// ═══ LEADS LIST ═══
+function getFilteredCarriers() {
+  let arr = [...S.carriers];
+  if (S.currentFilter === 'A') arr = arr.filter(c => c.priority === 'A' && !c.flag);
+  else if (S.currentFilter === 'B') arr = arr.filter(c => c.priority === 'B' && !c.flag);
+  else if (S.currentFilter === 'flagged') arr = arr.filter(c => c.flag);
+  else if (['pending','nocontact','called','interested','trial','closed','discard'].includes(S.currentFilter))
+    arr = arr.filter(c => c.status === S.currentFilter);
+  if (S.currentSearch) {
+    const q = S.currentSearch.toLowerCase();
+    arr = arr.filter(c => c.company.toLowerCase().includes(q) || c.city.toLowerCase().includes(q) || (c.officer||'').toLowerCase().includes(q) || c.state.toLowerCase().includes(q));
+  }
+  if (S.currentFileFilter) arr = arr.filter(c => c.pdfFile === S.currentFileFilter);
+  if (S.currentStateFilter) arr = arr.filter(c => c.state === S.currentStateFilter);
+  arr.sort((a,b) => { const po = {A:0,B:1,C:2,D:3}; return (po[a.priority]??4)-(po[b.priority]??4); });
+  return arr;
+}
+
+function renderLeads() {
+  const arr = getFilteredCarriers();
+  const tbody = document.getElementById('leads-tbody');
+  const empty = document.getElementById('leads-empty');
+  document.getElementById('leads-subtitle').textContent = `${S.carriers.length} total · ${S.carriers.filter(c=>c.priority==='A'&&!c.flag).length} Priority A`;
+  populateStateFilter();
+  document.getElementById('leads-count').textContent = `${arr.length} carriers shown`;
+
+  if (!arr.length) { tbody.innerHTML = ''; empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+
+  const statusMap = {
+    pending:'<span class="status-pill sp-pending">📞 Pending</span>',
+    nocontact:'<span class="status-pill sp-nocontact">📵 No Answer</span>',
+    called:'<span class="status-pill sp-called">💬 In Contact</span>',
+    interested:'<span class="status-pill sp-interested">⭐ Interested</span>',
+    trial:'<span class="status-pill sp-trial">🚛 Trial</span>',
+    closed:'<span class="status-pill sp-closed">✅ Closed</span>',
+    discard:'<span class="status-pill sp-discard">❌ Discard</span>',
+  };
+  const prioColors = {A:'pa',B:'pb',C:'pc',D:'pd'};
+
+  tbody.innerHTML = arr.map(c => `
+    <tr class="clickable" onclick="openCarrier('${c.id}')">
+      <td><div style="font-weight:500">${c.company}${c.flag?'<span class="flag-tag">🚩</span>':''}</div></td>
+      <td style="color:var(--t2);font-size:12px">${c.officer||'—'}</td>
+      <td>${c.city||'—'}, ${c.state}</td>
+      <td style="font-family:monospace;font-size:12px">${formatPhone(c.phone)}</td>
+      <td><span class="prio-dot ${prioColors[c.priority]||'pd'}"></span>${c.priority}</td>
+      <td>${statusMap[c.status]||''}</td>
+      <td style="color:var(--gray);font-size:12px">${c.pdfDate}</td>
+    </tr>`).join('');
+}
+
+function filterLeads(f, btn) {
+  S.currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderLeads();
+}
+
+function searchLeads(v) { S.currentSearch = v; renderLeads(); }
+
+// ═══ CARRIER DETAIL ═══
+function renderDetail() {
+  const c = S.carriers.find(x => x.id === S.currentCarrierId);
+  if (!c) return;
+  const first = (c.officer||'there').split(' ')[0];
+  const stateNames = {NC:'North Carolina',SC:'South Carolina',GA:'Georgia',VA:'Virginia',MD:'Maryland',NJ:'New Jersey',NY:'New York',PA:'Pennsylvania',CT:'Connecticut',DE:'Delaware',OH:'Ohio',TN:'Tennessee',FL:'Florida',WV:'West Virginia',AL:'Alabama'};
+  const sf = stateNames[c.state] || c.state;
+  const prioLabel = {A:'🔴 Priority A',B:'🟡 Priority B',C:'🟢 Priority C',D:'⚪ Priority D'};
+
+  document.getElementById('d-company-topbar').textContent = c.company;
+  document.getElementById('d-meta-topbar').textContent = `${c.city}, ${c.state} · DOT ${c.dot} · ${c.pdfDate}`;
+  document.getElementById('d-company').textContent = c.company;
+  document.getElementById('d-officer').textContent = c.officer || 'Not found in PDF';
+  document.getElementById('d-city').textContent = `${c.city||'—'}, ${c.state}`;
+  document.getElementById('d-dot').textContent = c.dot;
+  document.getElementById('d-dot-safer').textContent = c.dot;
+  document.getElementById('d-pdf-date').textContent = c.pdfDate;
+  document.getElementById('d-prio-chip').textContent = prioLabel[c.priority]||'';
+  document.getElementById('d-phone').textContent = formatPhone(c.phone) || 'No phone in PDF';
+  document.getElementById('d-status-select').value = c.status;
+  document.getElementById('d-equipment').value = c.equipment||'';
+  document.getElementById('d-followup').value = c.followUpDate||'';
+  document.getElementById('d-email').value = c.email||'';
+  document.getElementById('d-notes').value = c.notes||'';
+  document.getElementById('d-flag-chip').classList.toggle('hidden', !c.flag);
+  document.getElementById('d-last-contact').textContent = c.callDate ? `Last call: ${new Date(c.callDate).toLocaleDateString()}` : 'Never contacted';
+
+  // Script
+  const diesel = S.settings.dieselPrice || 4.89;
+  document.getElementById('d-script').innerHTML = `
+    <div>"Hi, is this <span class="hl">${first}</span>?"</div><br>
+    <div>"Hey ${first}, my name is <span class="hl">${S.settings.yourName||'[Your Name]'}</span>. I'm a freight dispatcher — I specialize in the <span class="hl">${S.settings.specialty}</span>."</div><br>
+    <div>"Quick question — are you running a <span class="hl">semi truck</span>, or what equipment do you have?"</div>
+    <div class="branch branch-y">
+      <div class="branch-lbl">✓ If YES — semi truck</div>
+      "I only work with <span class="hl">5 trucks max</span>, so every driver gets my full attention. I have <span class="hl">one spot open</span> right now. How long have you had your authority out of <span class="hl">${c.city||sf}</span>?"
+    </div>
+    <div class="branch branch-n">
+      <div class="branch-lbl">✗ If not a semi / wrong fit</div>
+      "Got it — I specialize in semi dispatch so I'm not the right fit, but good luck out there." [Mark Discard → next call]
+    </div>`;
+
+  // SMS
+  const sms = generateSMSTemplate(c);
+  document.getElementById('d-sms').textContent = sms;
+
+  // Diesel context in notes area placeholder
+  document.getElementById('d-notes').placeholder = `Interest level, equipment confirmed, follow-up date...\n\n💡 Market context: Diesel East Coast $${diesel}/gal · ${S.settings.specialty}`;
+}
+
+function generateSMSTemplate(c) {
+  const first = (c.officer||'there').split(' ')[0];
+  const templates = [
+    `Hey ${first}, tried calling earlier. I dispatch freight on the SE→NE I-95 corridor — NC up through NJ, NY, Long Island & Boston. Max 5 trucks, one spot open. Worth 2 min? — ${S.settings.yourName||'[Name]'} ${S.settings.yourPhone||''}`.trim(),
+    `Hi ${first} — missed you earlier. I specialize in freight from ${c.city||c.state} up through the Northeast. 7 years, 5 trucks max, full attention. Have an open spot this week. — ${S.settings.yourName||'[Name]'}`.trim(),
+    `Hey ${first}, I run dispatch for SE→NE I-95 lanes — ${c.state} to NY, NJ, Long Island, Boston. Only 5 trucks so every driver matters. One spot open. Call me back? — ${S.settings.yourName||'[Name]'} ${S.settings.yourPhone||''}`.trim(),
+    `Hi ${first}, tried reaching you. I'm a dispatcher focusing on ${c.state} to Northeast lanes. 7 years experience, boutique operation (max 5 trucks). First load free to prove it. — ${S.settings.yourName||'[Name]'}`.trim(),
+    `${first} — I dispatch on the I-95 corridor, ${c.state}→NJ/NY/Boston. Saw ${c.company} just got authority. I have one open spot and I work with new carriers from day one. Quick call? — ${S.settings.yourName||'[Name]'}`.trim(),
+  ];
+  const idx = S.carriers.findIndex(x => x.id === S.currentCarrierId) % templates.length;
+  return templates[idx >= 0 ? idx : 0];
+}
+
+async function generateSMS() {
+  const c = S.carriers.find(x => x.id === S.currentCarrierId);
+  if (!c) return;
+  const btn = document.getElementById('gen-btn');
+  const spinner = document.getElementById('sms-spinner');
+  const btnText = document.getElementById('gen-btn-text');
+  btn.classList.add('generating');
+  btnText.textContent = 'Generating...';
+  spinner.style.display = 'inline-block';
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-6', max_tokens:200,
+        messages:[{role:'user',content:`Write a short SMS (under 160 chars) from a freight dispatcher to a new carrier.
+Carrier: ${c.company}, Officer first name: ${(c.officer||'there').split(' ')[0]}, City: ${c.city}, State: ${c.state}
+Dispatcher: ${S.settings.yourName||'Carlos'}, specializes in SE→NE I-95 (NC up through NY, NJ, Long Island, Boston), 7 years, max 5 trucks, one open spot.
+Rules: casual tone, use their first name, mention their city/state, never mention FMCSA, end with dispatcher name. Return ONLY the SMS text.`}]
+      })
+    });
+    const data = await resp.json();
+    if (data.content?.[0]?.text) {
+      document.getElementById('d-sms').textContent = data.content[0].text.trim();
+      document.getElementById('sms-note-text').textContent = 'AI-generated · unique for this carrier';
+    } else throw new Error('API error');
+  } catch(e) {
+    const sms = generateSMSTemplate(c);
+    document.getElementById('d-sms').textContent = sms;
+    document.getElementById('sms-note-text').textContent = 'Template-based (AI unavailable)';
+  }
+  btn.classList.remove('generating');
+  btnText.textContent = '✨ Regenerate';
+  spinner.style.display = 'none';
+}
+
+function updateStatus(val) {
+  const c = S.carriers.find(x => x.id === S.currentCarrierId);
+  if (!c) return;
+  c.status = val;
+  c.updatedAt = new Date().toISOString();
+  saveState();
+  updateSidebar();
+  toast('Status updated');
+}
+
+function logCall() {
+  const c = S.carriers.find(x => x.id === S.currentCarrierId);
+  if (!c) return;
+  c.callDate = new Date().toISOString();
+  if (c.status === 'pending') c.status = 'nocontact';
+  c.updatedAt = new Date().toISOString();
+  document.getElementById('d-status-select').value = c.status;
+  document.getElementById('d-last-contact').textContent = `Last call: ${new Date().toLocaleDateString()}`;
+  saveState();
+  toast('Call logged ✓');
+}
+
+function updateField(field, val) {
+  const c = S.carriers.find(x => x.id === S.currentCarrierId);
+  if (c) { c[field] = val; c.updatedAt = new Date().toISOString(); }
+  clearTimeout(window._autoSave);
+  window._autoSave = setTimeout(() => { saveState(); document.getElementById('autosave-indicator').textContent = 'Saved ✓'; setTimeout(()=>{ document.getElementById('autosave-indicator').textContent = 'Auto-saved'; },2000); }, 800);
+}
+
+function saveCarrier() {
+  const c = S.carriers.find(x => x.id === S.currentCarrierId);
+  if (!c) return;
+  saveState();
+  updateSidebar();
+  if (S.settings.sheetsUrl) syncSingleCarrier(c);
+  toast('Saved ✓');
+}
+
+function openSAFER() {
+  const c = S.carriers.find(x => x.id === S.currentCarrierId);
+  if (!c) return;
+  window.open(`https://safer.fmcsa.dot.gov/query.asp?searchtype=ANY&query_type=queryCarrierSnapshot&query_param=USDOT&query_string=${c.dot}`, '_blank');
+}
+
+// ═══ COPY ═══
+function copyScript() {
+  const box = document.getElementById('d-script');
+  const text = box.innerText;
+  navigator.clipboard.writeText(text).then(() => toast('Script copied ✓')).catch(()=>{ const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toast('Script copied ✓'); });
+}
+
+function copySMS() {
+  const text = document.getElementById('d-sms').textContent;
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn = document.getElementById('sms-copy-btn');
+    btn.textContent = '✓ Copied'; btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent = '📋 Copy'; btn.classList.remove('copied'); }, 2000);
+  }).catch(()=>{const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toast('Copied ✓');});
+}
+
+function copyChecklist() {
+  const c = S.carriers.find(x => x.id === S.currentCarrierId);
+  const name = c ? `Hey ${(c.officer||'').split(' ')[0]||''},\n\n` : '';
+  const text = `${name}Here's what you need ready before your first load:\n\n✅ Active MC/DOT confirmed\n⬜ Certificate of Insurance (COI) — $1M liability min\n⬜ W-9 form\n⬜ Voided business check\n⬜ ELD device active\n⬜ Factoring setup (get paid in 24hrs — highly recommend)\n⬜ Carrier packet PDF ready to email\n⬜ Signed dispatch agreement with me\n\nI'll walk you through each one. — ${S.settings.yourName||'[Your Name]'}`;
+  navigator.clipboard.writeText(text).then(()=>toast('Checklist copied ✓')).catch(()=>{const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toast('Checklist copied ✓');});
+}
+
+// ═══ EXPORT / SYNC ═══
+function exportCSV() {
+  if (!S.carriers.length) { toast('No carriers to export', true); return; }
+  const headers = ['Company','DOT','Officer','Phone','City','State','Priority','Status','Equipment','Email','Notes','PDF Date','Filing Date','Updated'];
+  const rows = S.carriers.map(c => [c.company,c.dot,c.officer,c.phone,c.city,c.state,c.priority,c.status,c.equipment||'',c.email||'',c.notes?.replace(/\n/g,' ')||'',c.pdfDate,c.filingDate,c.updatedAt]);
+  const csv = [headers, ...rows].map(r => r.map(v => `"${(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `dispatchos_leads_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  toast('CSV exported ✓');
+}
+
+async function syncSheets() {
+  if (!S.settings.sheetsUrl) { toast('Add Apps Script URL in Settings first', true); showPanel('settings'); return; }
+  let count = 0;
+  for (const c of S.carriers) {
+    try { await syncSingleCarrier(c); count++; } catch(e) {}
+  }
+  toast(`Synced ${count} carriers to Google Sheets ✓`);
+}
+
+async function syncSingleCarrier(c) {
+  if (!S.settings.sheetsUrl) return;
+  try {
+    const cleanOfficer = (c.officer||'')
+      .replace(/\+1\s*\(?\d{3}\)?\s*\d{3}[-\.\s]\d{4}/g,'')
+      .replace(/\b\d{7,}\b/g,'').replace(/[+().-]/g,'').replace(/\s+/g,' ').trim();
+    const payload = {
+      company: c.company||'', dot: c.dot||'', officer: cleanOfficer,
+      phone: formatPhoneForSheet(c.phone), city: c.city||'', state: c.state||'',
+      priority: c.priority||'', status: c.status||'', equipment: c.equipment||'',
+      email: c.email||'', notes: c.notes||'', pdfDate: c.pdfDate||'',
+      filingDate: c.filingDate||'', updated: c.updatedAt||''
+    };
+    await fetch(S.settings.sheetsUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(payload)
+    });
+  } catch(e) { console.warn('Sheets sync error:', e); }
+}
+
+async function testSheets() {
+  const url = document.getElementById('s-sheets-url').value.trim();
+  if (!url) { toast('Paste Apps Script URL first', true); return; }
+  try {
+    await fetch(url, {method:'POST', headers:{'Content-Type':'text/plain'}, body:JSON.stringify({test:true,timestamp:new Date().toISOString()})});
+    document.getElementById('sheets-status').textContent = '✓ Connected'; document.getElementById('sheets-status').className = 'sync-status sync-ok'; document.getElementById('sheets-status').style.display='inline-block';
+    toast('Sheets connection OK ✓');
+  } catch(e) {
+    document.getElementById('sheets-status').textContent = '✗ Failed'; document.getElementById('sheets-status').className = 'sync-status sync-err'; document.getElementById('sheets-status').style.display='inline-block';
+    toast('Connection failed — check URL', true);
+  }
+}
+
+// ═══ SETTINGS ═══
+function loadSettingsForm() {
+  document.getElementById('s-name').value = S.settings.yourName||'';
+  document.getElementById('s-phone').value = S.settings.yourPhone||'';
+  document.getElementById('s-specialty').value = S.settings.specialty||'';
+  document.getElementById('s-sheets-url').value = S.settings.sheetsUrl||'';
+  document.getElementById('s-diesel').value = S.settings.dieselPrice||'';
+  document.getElementById('s-diesel-date').value = S.settings.dieselDate||'';
+  const appsScript = `function doPost(e) {
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var data = JSON.parse(e.postData.contents);
+    if (data.test) return ok();
+    var vals = sheet.getDataRange().getValues();
+    var headers = ['Company','DOT','Officer','Phone','City','State','Priority','Status','Equipment','Email','Notes','PDF Date','Filing Date','Updated'];
+    if (sheet.getLastRow() === 0) sheet.appendRow(headers);
+    var dotCol = 1, found = -1;
+    for (var i = 1; i < vals.length; i++) { if (vals[i][dotCol] == data.dot) { found = i+1; break; } }
+    var row = [data.company,data.dot,data.officer,data.phone,data.city,data.state,data.priority,data.status,data.equipment,data.email,data.notes,data.pdfDate,data.filingDate,data.updated];
+    if (found > 0) sheet.getRange(found,1,1,row.length).setValues([row]);
+    else sheet.appendRow(row);
+    return ok();
+  } catch(err) { return ContentService.createTextOutput(JSON.stringify({error:err.toString()})).setMimeType(ContentService.MimeType.JSON); }
+  function ok() { return ContentService.createTextOutput(JSON.stringify({success:true})).setMimeType(ContentService.MimeType.JSON); }
+}`;
+  document.getElementById('apps-script-code').textContent = appsScript;
+}
+
+function saveSettings() {
+  S.settings.yourName = document.getElementById('s-name').value.trim();
+  S.settings.yourPhone = document.getElementById('s-phone').value.trim();
+  S.settings.specialty = document.getElementById('s-specialty').value.trim();
+  S.settings.sheetsUrl = document.getElementById('s-sheets-url').value.trim();
+  S.settings.dieselPrice = parseFloat(document.getElementById('s-diesel').value)||4.89;
+  S.settings.dieselDate = document.getElementById('s-diesel-date').value;
+  saveState(); updateSidebar(); toast('Settings saved ✓');
+}
+
+function showScriptInstructions() {
+  const el = document.getElementById('script-instructions');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function copyAppScript() {
+  const text = document.getElementById('apps-script-code').textContent;
+  navigator.clipboard.writeText(text).then(()=>toast('Apps Script code copied ✓')).catch(()=>{const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toast('Copied ✓');});
+}
+
+function confirmClear() {
+  if (confirm('Delete ALL carriers and PDF history? This cannot be undone.')) {
+    S.carriers = []; S.pdfsProcessed = []; saveState(); updateSidebar(); renderUploadHistory(); toast('All data cleared');
+  }
+}
+
+// ═══ PDF FILES ═══
+function renderFiles() {
+  const body = document.getElementById('files-body');
+  document.getElementById('files-subtitle').textContent = S.pdfsProcessed.length + ' files processed';
+  if (!S.pdfsProcessed.length) {
+    body.innerHTML = '<div class="empty-state"><div class="ei">📂</div><p>No PDFs processed yet. Upload your first PDF.</p></div>';
+    return;
+  }
+  body.innerHTML = S.pdfsProcessed.map(filename => {
+    const carriers = S.carriers.filter(c => c.pdfFile === filename);
+    const byPrio = {A:0,B:0,C:0,D:0};
+    carriers.forEach(c => { if(!c.flag) byPrio[c.priority]++; });
+    const flagged = carriers.filter(c => c.flag).length;
+    const closed = carriers.filter(c => c.status === 'closed').length;
+    const dm = filename.match(/(\d{4})(\d{2})(\d{2})/);
+    const date = dm ? `${dm[2]}/${dm[3]}/${dm[1]}` : filename;
+    const isActive = S.currentFileFilter === filename;
+    return `
+      <div class="file-card ${isActive ? 'active-file' : ''}" onclick="filterByFile('${filename}')">
+        <div style="flex:1">
+          <div class="file-name">${filename}</div>
+          <div class="file-date">Register date: ${date}</div>
+          <div class="file-stats">
+            <span>🔴 ${byPrio.A} Priority A</span>
+            <span>🟡 ${byPrio.B} Priority B</span>
+            <span>🟢 ${byPrio.C} Priority C</span>
+            ${flagged ? `<span style="color:var(--red)">🚩 ${flagged} Flagged</span>` : ''}
+            ${closed ? `<span style="color:var(--green)">✅ ${closed} Closed</span>` : ''}
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div class="file-total">${carriers.length}</div>
+          <div class="file-total-label">carriers</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function filterByFile(filename) {
+  S.currentFileFilter = filename;
+  S.currentFilter = 'all';
+  S.currentSearch = '';
+  showPanel('leads');
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.filter-btn').classList.add('active');
+  document.getElementById('file-filter-bar').classList.remove('hidden');
+  document.getElementById('file-filter-label').textContent = '📁 Showing: ' + filename;
+  renderLeads();
+  toast('Filtered to ' + filename);
+}
+
+function filterByStateValue(state) {
+  S.currentStateFilter = state;
+  renderLeads();
+}
+
+function populateStateFilter() {
+  const sel = document.getElementById('state-filter-select');
+  if (!sel) return;
+  const states = [...new Set(S.carriers.map(c => c.state).filter(Boolean))].sort();
+  const current = sel.value;
+  sel.innerHTML = '<option value="">All States</option>' +
+    states.map(s => `<option value="${s}" ${s===current?'selected':''}>${s}</option>`).join('');
+}
+
+function clearFileFilter() {
+  S.currentFileFilter = '';
+  document.getElementById('file-filter-bar').classList.add('hidden');
+  renderLeads();
+  renderFiles();
+}
+
+// ═══ UTILS ═══
+function formatPhoneForSheet(p) {
+  if (!p) return '';
+  const d = (p||'').replace(/\D/g,'');
+  if (d.length === 10) return `+1 (${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
+  if (d.length === 11 && d[0]==='1') return `+1 (${d.slice(1,4)}) ${d.slice(4,7)}-${d.slice(7)}`;
+  return p;
+}
+
+function formatPhone(p) {
+  if (!p) return '—';
+  const d = p.replace(/\D/g,'');
+  if (d.length === 11 && d[0]==='1') return `+1 (${d.slice(1,4)}) ${d.slice(4,7)}-${d.slice(7)}`;
+  if (d.length === 10) return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
+  return p;
+}
+
+function setProcessing(show, text='', pct=0) {
+  const el = document.getElementById('processing');
+  el.classList.toggle('hidden', !show);
+  if (show) { document.getElementById('processing-text').textContent = text; document.getElementById('progress-fill').style.width = pct + '%'; }
+}
+
+let _toastTimer;
+function toast(msg, isError=false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast' + (isError?' error':'') + ' show';
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>{ el.classList.remove('show'); }, 2800);
+}
+
+// ═══ PWA + INSTALL ═══
+let _deferredInstall = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _deferredInstall = e;
+  const btn = document.getElementById('install-btn');
+  const status = document.getElementById('install-status');
+  if (btn) btn.style.display = 'inline-block';
+  if (status) status.textContent = 'Ready to install — click the button above.';
+});
+window.addEventListener('appinstalled', () => {
+  const status = document.getElementById('install-status');
+  if (status) status.textContent = '✅ App installed successfully!';
+  _deferredInstall = null;
+});
+function triggerInstall() {
+  if (!_deferredInstall) return;
+  _deferredInstall.prompt();
+  _deferredInstall.userChoice.then(() => { _deferredInstall = null; });
+}
+// Inline PWA manifest
+(function() {
+  const manifest = {
+    name: 'DispatchOS — Dispatch Lead System',
+    short_name: 'DispatchOS',
+    start_url: '.',
+    display: 'standalone',
+    background_color: '#0f1117',
+    theme_color: '#00d4aa',
+    description: 'FMCSA freight dispatcher lead management system',
+    icons: [{
+      src: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="#0f1117"/><text y="68" x="10" font-size="72">🚛</text></svg>'),
+      sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable'
+    }]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  document.getElementById('pwa-manifest').href = url;
+  const statusEl = document.getElementById('install-status');
+  if (statusEl) {
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      statusEl.textContent = '✅ Running as installed app.';
+    } else {
+      statusEl.textContent = 'Open this page in Chrome or Brave to install.';
+    }
+  }
+})();
+
+// ═══ INIT ═══
+checkSetup();
+</script>
+</body>
+</html>
